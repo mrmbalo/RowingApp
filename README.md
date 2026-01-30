@@ -34,20 +34,3 @@ so use Chrome or Edge and run the site locally or over HTTPS.
 This app listens to the Bluetooth Fitness Machine Service (UUID 0x1826) and the
 Indoor Rowing Data characteristic (UUID 0x2AD1). The Concept2 PM5 should be in
 BLE pairing mode before connecting.
-
-## `push` script
-
-A small script at `~/scripts/push` runs `git add . && git commit -m "..." && git push`. To have it on your PATH:
-
-```bash
-# One-time setup: add ~/scripts to PATH
-echo 'export PATH="$HOME/scripts:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-chmod +x ~/scripts/push
-```
-
-Then from any repo:
-
-```bash
-push "your commit message"
-```
