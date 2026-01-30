@@ -8,7 +8,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { formatDuration } from "../utils/formatters";
+import { formatDuration, paceToWatts } from "../utils/formatters";
 
 ChartJS.register(
   CategoryScale,
@@ -42,7 +42,10 @@ const PerformanceChart = ({ title, samples }) => {
     datasets: [
       {
         label: "Power (W)",
-        data: samples.map((sample) => sample.power ?? null),
+        data: samples.map((sample) =>
+          sample.power ??
+          (sample.pace != null ? paceToWatts(sample.pace) : null),
+        ),
         borderColor: "#2563eb",
         backgroundColor: "rgba(37, 99, 235, 0.2)",
         tension: 0.3,

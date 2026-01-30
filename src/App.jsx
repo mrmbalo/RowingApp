@@ -72,7 +72,6 @@ const App = () => {
   const [selectedEntry, setSelectedEntry] = useState(
     logbookEntries.length ? logbookEntries[0] : null,
   );
-  const [dragFactor, setDragFactor] = useState(120);
   const [driveLength, setDriveLength] = useState(1.35);
   const [sessionNotes, setSessionNotes] = useState("");
   const [sessionOffsets, setSessionOffsets] = useState({
@@ -195,7 +194,7 @@ const App = () => {
       workout: activeWorkout,
       notes: sessionNotes,
       settings: {
-        dragFactor,
+        damper: metrics.resistanceLevel,
         driveLength,
       },
       summary: {
@@ -205,7 +204,7 @@ const App = () => {
         averagePower: derived.averagePower,
         averageStrokeRate: derived.averageStrokeRate,
         strokeCount: derived.sessionStrokeCount,
-        dragFactor,
+        damper: metrics.resistanceLevel,
         driveLength,
       },
       samples: downsample(sessionSamples),
@@ -247,6 +246,17 @@ const App = () => {
           : null,
     },
     {
+      label: "Distance Remaining",
+      value: formatDistance(derived.distanceToGo),
+      subvalue: targetDistance
+        ? `Target ${formatDistance(targetDistance)}`
+        : targetTime
+          ? `Target ${formatDuration(targetTime)}`
+          : activeWorkout
+            ? null
+            : "No workout — just row",
+    },
+    {
       label: "Distance Rowed",
       value: formatDistance(derived.sessionDistance),
       subvalue:
@@ -256,18 +266,12 @@ const App = () => {
           : null,
     },
     {
-      label: "Distance to Go",
-      value: formatDistance(derived.distanceToGo),
-      subvalue: targetDistance
-        ? `Target ${formatDistance(targetDistance)}`
-        : targetTime
-          ? `Target ${formatDuration(targetTime)}`
-          : null,
-    },
-    {
-      label: "Drag Factor",
-      value: `${formatNumber(dragFactor, 0)}`,
-      subvalue: "Manual setting",
+      label: "Damper (1–10)",
+      value:
+        metrics.resistanceLevel != null
+          ? `${formatNumber(metrics.resistanceLevel, 0)}`
+          : "--",
+      subvalue: "From monitor",
     },
     {
       label: "Drive Length",
@@ -363,10 +367,11 @@ const App = () => {
 
       <section className="panel">
         <div className="panel__header">
-          <h2>Live Standard Views</h2>
+          <h2>Live Output</h2>
           <p>
-            Mirrors the Concept2 PM5 screens with strokes, pace, watts, and
-            projections.
+            {activeWorkout
+              ? `Workout: ${activeWorkout.name} — distance remaining and live metrics below.`
+              : "Just row to see live output, or select a workout below for distance remaining and targets."}
           </p>
         </div>
         <div className="metrics-grid">
@@ -379,20 +384,6 @@ const App = () => {
           <div className="info-card">
             <h3>Session Controls</h3>
             <div className="form-grid">
-              <label>
-                Drag Factor
-                <input
-                  type="number"
-                  min="80"
-                  max="200"
-                  value={dragFactor}
-                  onChange={(event) =>
-                    setDragFactor(
-                      clampNumber(Number(event.target.value), 80, 200),
-                    )
-                  }
-                />
-              </label>
               <label>
                 Drive Length (m)
                 <input

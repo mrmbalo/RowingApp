@@ -4,6 +4,7 @@ import {
   INDOOR_ROWING_DATA_UUID,
   parseIndoorRowingData,
 } from "../utils/ble";
+import { paceToWatts } from "../utils/formatters";
 
 const DEFAULT_METRICS = {
   strokeRate: null,
@@ -27,13 +28,19 @@ const DEFAULT_METRICS = {
 
 const MAX_SAMPLES = 300;
 
-const buildSample = (data, fallbackElapsed) => ({
-  time: data.elapsedTime ?? fallbackElapsed ?? null,
-  power: data.instantaneousPower ?? null,
-  pace: data.instantaneousPace ?? null,
-  distance: data.totalDistance ?? null,
-  strokeRate: data.strokeRate ?? null,
-});
+const buildSample = (data, fallbackElapsed) => {
+  const pace = data.instantaneousPace ?? null;
+  const power =
+    data.instantaneousPower ??
+    (pace != null ? paceToWatts(pace) : null);
+  return {
+    time: data.elapsedTime ?? fallbackElapsed ?? null,
+    power,
+    pace,
+    distance: data.totalDistance ?? null,
+    strokeRate: data.strokeRate ?? null,
+  };
+};
 
 export const useConcept2 = () => {
   const [status, setStatus] = useState("disconnected");
@@ -58,7 +65,6 @@ export const useConcept2 = () => {
   }, [isSessionActive]);
 
   const appendSample = useCallback((data) => {
-    if (!sessionActiveRef.current) return;
     if (!sessionStartRef.current) {
       sessionStartRef.current = Date.now();
     }
@@ -204,6 +210,7 @@ export const useConcept2 = () => {
         averagePower: 2.8 / Math.pow(pace / 500, 3),
         elapsedTime: demoStateRef.current.elapsedTime,
         remainingTime: null,
+        resistanceLevel: 5,
       };
       setMetrics((prev) => ({
         ...prev,

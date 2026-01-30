@@ -186,6 +186,7 @@ textarea {
 
 .chart-card__canvas {
   flex: 1;
+  min-height: 260px;
 }
 
 .chart-card__empty {

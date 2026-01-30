@@ -25,7 +25,7 @@ const WorkoutBuilder = ({
     targetTime: 20,
     intervalDistance: 500,
     intervalTime: 120,
-    intervalRest: 60,
+    intervalRest: 180,
     intervalRepeat: 5,
   });
 
@@ -220,13 +220,18 @@ const WorkoutBuilder = ({
                 />
               </label>
               <label>
-                Rest (sec)
+                Rest (min)
                 <input
                   type="number"
                   min="0"
-                  step="10"
-                  value={form.intervalRest}
-                  onChange={handleChange("intervalRest")}
+                  step="0.5"
+                  value={form.intervalRest / 60}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      intervalRest: Math.max(0, Number(e.target.value) * 60),
+                    }))
+                  }
                 />
               </label>
               <label>

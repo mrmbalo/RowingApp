@@ -86,11 +86,13 @@ const Logbook = ({ entries, selectedEntry, onSelect, onDelete }) => {
                   </strong>
                 </div>
                 <div className="summary-card">
-                  <span>Drag Factor</span>
+                  <span>Damper</span>
                   <strong>
-                    {selectedEntry.summary.dragFactor
-                      ? `${selectedEntry.summary.dragFactor}`
-                      : "--"}
+                    {selectedEntry.summary.damper != null
+                      ? `${selectedEntry.summary.damper}`
+                      : selectedEntry.summary.dragFactor != null
+                        ? `${selectedEntry.summary.dragFactor}`
+                        : "--"}
                   </strong>
                 </div>
               </div>
