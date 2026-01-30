@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Logbook from "./components/Logbook";
 import MetricCard from "./components/MetricCard";
 import PerformanceChart from "./components/PerformanceChart";
+import SetupScreen from "./components/SetupScreen";
 import StatusPill from "./components/StatusPill";
 import WorkoutBuilder from "./components/WorkoutBuilder";
 import { useConcept2 } from "./hooks/useConcept2";
@@ -62,6 +63,7 @@ const App = () => {
     stopDemo,
   } = useConcept2();
 
+  const [view, setView] = useState("setup");
   const [customWorkouts, setCustomWorkouts] = useState(() =>
     loadFromStorage(CUSTOM_WORKOUTS_KEY, []),
   );
@@ -122,17 +124,18 @@ const App = () => {
       (sessionSamples.length
         ? sessionSamples[sessionSamples.length - 1].time
         : null);
+    const instantaneousPace = metrics.instantaneousPace ?? null;
     const averagePace =
       metrics.averagePace ??
-      (elapsedTime && sessionDistance
+      (elapsedTime && sessionDistance && sessionDistance > 0
         ? elapsedTime / (sessionDistance / 500)
         : null);
-    const instantaneousPace = metrics.instantaneousPace ?? null;
     const watts =
       metrics.instantaneousPower ??
       (instantaneousPace ? paceToWatts(instantaneousPace) : null);
     const averagePower =
-      metrics.averagePower ?? (averagePace ? paceToWatts(averagePace) : null);
+      metrics.averagePower ??
+      (averagePace ? paceToWatts(averagePace) : null);
     const averageStrokeRate =
       metrics.averageStrokeRate ??
       averageOf(sessionSamples.map((sample) => sample.strokeRate ?? null));
@@ -234,14 +237,23 @@ const App = () => {
 
   const metricsView = [
     {
+      label: "Pace /500m (current)",
+      value: formatPace(metrics.instantaneousPace ?? derived.instantaneousPace),
+      subvalue: "From PM5",
+    },
+    {
+      label: "Pace /500m (avg)",
+      value: formatPace(metrics.averagePace ?? derived.averagePace),
+      subvalue: "From PM5",
+    },
+    {
       label: "Strokes / Min",
       value:
-        metrics.strokeRate !== null && metrics.strokeRate !== undefined
+        metrics.strokeRate != null
           ? `${formatNumber(metrics.strokeRate, 0)} spm`
           : "--",
       subvalue:
-        derived.averageStrokeRate !== null &&
-        derived.averageStrokeRate !== undefined
+        derived.averageStrokeRate != null
           ? `Avg ${formatNumber(derived.averageStrokeRate, 0)} spm`
           : null,
     },
@@ -257,44 +269,42 @@ const App = () => {
             : "No workout — just row",
     },
     {
+      label: "Time Remaining",
+      value:
+        metrics.remainingTime != null
+          ? formatDuration(metrics.remainingTime)
+          : "--",
+      subvalue: "From PM5 (when workout on monitor)",
+    },
+    {
       label: "Distance Rowed",
       value: formatDistance(derived.sessionDistance),
       subvalue:
-        derived.sessionStrokeCount !== null &&
-        derived.sessionStrokeCount !== undefined
+        derived.sessionStrokeCount != null
           ? `${formatNumber(derived.sessionStrokeCount, 0)} strokes`
           : null,
-    },
-    {
-      label: "Damper (1–10)",
-      value:
-        metrics.resistanceLevel != null
-          ? `${formatNumber(metrics.resistanceLevel, 0)}`
-          : "--",
-      subvalue: "From monitor",
-    },
-    {
-      label: "Drive Length",
-      value: `${formatNumber(driveLength, 2)} m`,
-      subvalue: "Manual setting",
     },
     {
       label: "Watts",
       value: formatWatts(derived.watts),
       subvalue:
-        derived.averagePower !== null && derived.averagePower !== undefined
+        derived.averagePower != null
           ? `Avg ${formatWatts(derived.averagePower)}`
           : null,
       highlight: true,
     },
     {
-      label: "Average Pace",
-      value: formatPace(derived.averagePace),
-      subvalue:
-        derived.instantaneousPace !== null &&
-        derived.instantaneousPace !== undefined
-          ? `Now ${formatPace(derived.instantaneousPace)}`
-          : null,
+      label: "Damper",
+      value:
+        metrics.resistanceLevel != null
+          ? `${formatNumber(metrics.resistanceLevel, 0)}`
+          : "--",
+      subvalue: "From PM5 (drag factor on monitor)",
+    },
+    {
+      label: "Drive Length",
+      value: "—",
+      subvalue: "Set on PM5",
     },
     {
       label: "Predicted Finish Time",
@@ -304,38 +314,77 @@ const App = () => {
     {
       label: "Elapsed Time",
       value: formatDuration(derived.elapsedTime),
-      subvalue:
-        metrics.remainingTime !== null && metrics.remainingTime !== undefined
-          ? `Remaining ${formatDuration(metrics.remainingTime)}`
-          : null,
+      subvalue: "From PM5",
     },
     {
       label: "Heart Rate",
       value:
-        metrics.heartRate !== null && metrics.heartRate !== undefined
-          ? `${metrics.heartRate} bpm`
-          : "--",
+        metrics.heartRate != null ? `${metrics.heartRate} bpm` : "--",
       subvalue:
-        metrics.metabolicEquivalent !== null &&
-        metrics.metabolicEquivalent !== undefined
+        metrics.metabolicEquivalent != null
           ? `${metrics.metabolicEquivalent} METs`
           : null,
     },
   ];
 
+  const handleJustRow = () => {
+    setActiveWorkout(null);
+    setView("rowing");
+    connect();
+  };
+
+  const handleConnectAndRow = () => {
+    setView("rowing");
+    connect();
+  };
+
+  if (view === "setup") {
+    return (
+      <div className="app">
+        <header className="app__header">
+          <h1>Rowing Live</h1>
+          <p>Set up your row, then connect to your PM5.</p>
+        </header>
+        {error ? <div className="alert">{error}</div> : null}
+        <SetupScreen
+          activeWorkout={activeWorkout}
+          onSelectJustRow={handleJustRow}
+          onConnectAndRow={handleConnectAndRow}
+        >
+          <WorkoutBuilder
+            standardWorkouts={standardWorkouts}
+            customWorkouts={customWorkouts}
+            activeWorkout={activeWorkout}
+            onActivate={setActiveWorkout}
+            onSaveCustom={handleSaveCustomWorkout}
+            onRemoveCustom={handleRemoveCustomWorkout}
+          />
+        </SetupScreen>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header className="app__header">
         <div>
-          <h1>Rowing Live Dashboard</h1>
+          <h1>Rowing Live</h1>
           <p>
-            Connect your Concept2 rower over Bluetooth to view live metrics, set
-            workouts, and log every row.
+            {activeWorkout
+              ? `Workout: ${activeWorkout.name} — data from PM5.`
+              : "Just row — data from PM5."}
           </p>
         </div>
         <div className="header-actions">
           <StatusPill status={status} />
           <div className="button-row">
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => setView("setup")}
+            >
+              Back to setup
+            </button>
             <button
               type="button"
               className="button button--primary"
@@ -367,11 +416,10 @@ const App = () => {
 
       <section className="panel">
         <div className="panel__header">
-          <h2>Live Output</h2>
+          <h2>Live output from PM5</h2>
           <p>
-            {activeWorkout
-              ? `Workout: ${activeWorkout.name} — distance remaining and live metrics below.`
-              : "Just row to see live output, or select a workout below for distance remaining and targets."}
+            Pace /500m, distance remaining, watts, and power curve from the
+            monitor.
           </p>
         </div>
         <div className="metrics-grid">
@@ -380,25 +428,14 @@ const App = () => {
           ))}
         </div>
         <div className="chart-grid">
-          <PerformanceChart title="Power Output Chart" samples={sessionSamples} />
+          <PerformanceChart
+            title="Power curve (from PM5)"
+            samples={sessionSamples}
+            powerOnly
+          />
           <div className="info-card">
-            <h3>Session Controls</h3>
+            <h3>Session</h3>
             <div className="form-grid">
-              <label>
-                Drive Length (m)
-                <input
-                  type="number"
-                  min="0.8"
-                  max="2.0"
-                  step="0.01"
-                  value={driveLength}
-                  onChange={(event) =>
-                    setDriveLength(
-                      clampNumber(Number(event.target.value), 0.8, 2.0),
-                    )
-                  }
-                />
-              </label>
               <label className="form-grid__full">
                 Session Notes
                 <textarea
@@ -439,14 +476,26 @@ const App = () => {
         </div>
       </section>
 
-      <WorkoutBuilder
-        standardWorkouts={standardWorkouts}
-        customWorkouts={customWorkouts}
-        activeWorkout={activeWorkout}
-        onActivate={setActiveWorkout}
-        onSaveCustom={handleSaveCustomWorkout}
-        onRemoveCustom={handleRemoveCustomWorkout}
-      />
+      {status === "disconnected" ? (
+        <section className="panel">
+          <div className="panel__header">
+            <h2>Workout</h2>
+            <p>Change workout from setup, or reconnect.</p>
+          </div>
+          {activeWorkout ? (
+            <div className="active-workout">
+              <strong>{activeWorkout.name}</strong> —{" "}
+              {getWorkoutTargetDistance(activeWorkout)
+                ? formatDistance(getWorkoutTargetDistance(activeWorkout))
+                : getWorkoutTargetTime(activeWorkout)
+                  ? formatDuration(getWorkoutTargetTime(activeWorkout))
+                  : ""}
+            </div>
+          ) : (
+            <p>Just row (no workout).</p>
+          )}
+        </section>
+      ) : null}
 
       <Logbook
         entries={logbookEntries}

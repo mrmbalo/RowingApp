@@ -47,12 +47,27 @@ export const standardWorkouts = [
       },
     ],
   },
+  {
+    id: "workout-5x2min",
+    name: "5 x 2 min (1 min rest)",
+    type: "time_interval",
+    intervals: [
+      {
+        time: 2 * 60,
+        rest: 60,
+        repeat: 5,
+      },
+    ],
+  },
 ];
 
 export const getWorkoutTargetDistance = (workout) => {
   if (!workout) return null;
   if (workout.type === "distance") return workout.targetDistance ?? null;
-  if (workout.type === "interval" && Array.isArray(workout.intervals)) {
+  if (
+    (workout.type === "interval" || workout.type === "custom") &&
+    Array.isArray(workout.intervals)
+  ) {
     return workout.intervals.reduce((total, interval) => {
       const repeat = interval.repeat ?? 1;
       const distance = interval.distance ?? 0;
@@ -65,7 +80,12 @@ export const getWorkoutTargetDistance = (workout) => {
 export const getWorkoutTargetTime = (workout) => {
   if (!workout) return null;
   if (workout.type === "time") return workout.targetTime ?? null;
-  if (workout.type === "interval" && Array.isArray(workout.intervals)) {
+  if (
+    (workout.type === "interval" ||
+      workout.type === "time_interval" ||
+      workout.type === "custom") &&
+    Array.isArray(workout.intervals)
+  ) {
     return workout.intervals.reduce((total, interval) => {
       const repeat = interval.repeat ?? 1;
       const time = interval.time ?? 0;

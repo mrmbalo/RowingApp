@@ -27,6 +27,10 @@ const WorkoutBuilder = ({
     intervalTime: 120,
     intervalRest: 180,
     intervalRepeat: 5,
+    timeIntervalWork: 2 * 60,
+    timeIntervalRest: 60,
+    timeIntervalRepeat: 5,
+    customSegments: [{ distance: 500, rest: 60 }, { distance: 500, rest: 60 }],
   });
 
   const preview = useMemo(() => {
@@ -49,6 +53,23 @@ const WorkoutBuilder = ({
           repeat: Number(form.intervalRepeat),
         },
       ];
+    }
+    if (form.type === "time_interval") {
+      base.intervals = [
+        {
+          time: Number(form.timeIntervalWork),
+          rest: Number(form.timeIntervalRest),
+          repeat: Number(form.timeIntervalRepeat),
+        },
+      ];
+    }
+    if (form.type === "custom") {
+      base.intervals = form.customSegments.map((seg) => ({
+        distance: seg.distance ?? 0,
+        time: seg.time ?? 0,
+        rest: seg.rest ?? 0,
+        repeat: 1,
+      }));
     }
     return base;
   }, [form]);
@@ -165,9 +186,11 @@ const WorkoutBuilder = ({
           <label>
             Type
             <select value={form.type} onChange={handleChange("type")}>
-              <option value="distance">Distance</option>
-              <option value="time">Time</option>
-              <option value="interval">Interval</option>
+              <option value="distance">Fixed distance</option>
+              <option value="time">Fixed time</option>
+              <option value="interval">Distance intervals (distance + rest)</option>
+              <option value="time_interval">Time intervals (work + rest)</option>
+              <option value="custom">Custom intervals</option>
             </select>
           </label>
 
@@ -245,6 +268,124 @@ const WorkoutBuilder = ({
                 />
               </label>
             </>
+          ) : null}
+
+          {form.type === "time_interval" ? (
+            <>
+              <label>
+                Work (sec)
+                <input
+                  type="number"
+                  min="30"
+                  step="10"
+                  value={form.timeIntervalWork}
+                  onChange={handleChange("timeIntervalWork")}
+                />
+              </label>
+              <label>
+                Rest (min)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={form.timeIntervalRest / 60}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      timeIntervalRest: Math.max(0, Number(e.target.value) * 60),
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Repeats
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.timeIntervalRepeat}
+                  onChange={handleChange("timeIntervalRepeat")}
+                />
+              </label>
+            </>
+          ) : null}
+
+          {form.type === "custom" ? (
+            <div className="custom-segments">
+              <label className="form-grid__full">
+                Segments (distance in m, time in sec, rest in sec; repeat = 1 per row)
+              </label>
+              {form.customSegments.map((seg, i) => (
+                <div key={i} className="segment-row form-grid__full">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Dist (m)"
+                    value={seg.distance || ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        customSegments: prev.customSegments.map((s, j) =>
+                          j === i ? { ...s, distance: Number(e.target.value) || 0 } : s
+                        ),
+                      }))
+                    }
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Time (sec)"
+                    value={seg.time || ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        customSegments: prev.customSegments.map((s, j) =>
+                          j === i ? { ...s, time: Number(e.target.value) || 0 } : s
+                        ),
+                      }))
+                    }
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Rest (sec)"
+                    value={seg.rest || ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        customSegments: prev.customSegments.map((s, j) =>
+                          j === i ? { ...s, rest: Number(e.target.value) || 0 } : s
+                        ),
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="button button--text"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        customSegments: prev.customSegments.filter((_, j) => j !== i),
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="button button--ghost form-grid__full"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    customSegments: [...prev.customSegments, { distance: 500, rest: 60 }],
+                  }))
+                }
+              >
+                Add segment
+              </button>
+            </div>
           ) : null}
 
           <div className="form-actions">

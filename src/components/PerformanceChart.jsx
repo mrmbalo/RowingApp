@@ -19,13 +19,13 @@ ChartJS.register(
   Legend,
 );
 
-const PerformanceChart = ({ title, samples }) => {
+const PerformanceChart = ({ title, samples, powerOnly = false }) => {
   if (!samples.length) {
     return (
       <div className="chart-card">
         <h3>{title}</h3>
         <div className="chart-card__empty">
-          Start a session to see live power and pace.
+          Connect and row to see the power curve from the PM5.
         </div>
       </div>
     );
@@ -37,32 +37,36 @@ const PerformanceChart = ({ title, samples }) => {
       : `${index + 1}s`,
   );
 
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: "Power (W)",
-        data: samples.map((sample) =>
-          sample.power ??
-          (sample.pace != null ? paceToWatts(sample.pace) : null),
-        ),
-        borderColor: "#2563eb",
-        backgroundColor: "rgba(37, 99, 235, 0.2)",
-        tension: 0.3,
-        yAxisID: "y",
-        spanGaps: true,
-      },
-      {
-        label: "Pace (sec/500m)",
-        data: samples.map((sample) => sample.pace ?? null),
-        borderColor: "#f97316",
-        backgroundColor: "rgba(249, 115, 22, 0.2)",
-        tension: 0.3,
-        yAxisID: "y1",
-        spanGaps: true,
-      },
-    ],
-  };
+  const powerData = samples.map((sample) =>
+    sample.power ??
+    (sample.pace != null ? paceToWatts(sample.pace) : null),
+  );
+
+  const datasets = [
+    {
+      label: "Power (W)",
+      data: powerData,
+      borderColor: "#2563eb",
+      backgroundColor: "rgba(37, 99, 235, 0.2)",
+      tension: 0.3,
+      yAxisID: "y",
+      spanGaps: true,
+    },
+  ];
+
+  if (!powerOnly) {
+    datasets.push({
+      label: "Pace (sec/500m)",
+      data: samples.map((sample) => sample.pace ?? null),
+      borderColor: "#f97316",
+      backgroundColor: "rgba(249, 115, 22, 0.2)",
+      tension: 0.3,
+      yAxisID: "y1",
+      spanGaps: true,
+    });
+  }
+
+  const data = { labels, datasets };
 
   const options = {
     responsive: true,
@@ -78,19 +82,21 @@ const PerformanceChart = ({ title, samples }) => {
           text: "Watts",
         },
       },
-      y1: {
-        position: "right",
-        grid: {
-          drawOnChartArea: false,
+      ...(!powerOnly && {
+        y1: {
+          position: "right",
+          grid: {
+            drawOnChartArea: false,
+          },
+          title: {
+            display: true,
+            text: "Sec / 500m",
+          },
+          ticks: {
+            callback: (value) => formatDuration(Number(value)),
+          },
         },
-        title: {
-          display: true,
-          text: "Sec / 500m",
-        },
-        ticks: {
-          callback: (value) => formatDuration(Number(value)),
-        },
-      },
+      }),
     },
     plugins: {
       legend: {

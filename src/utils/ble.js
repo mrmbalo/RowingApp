@@ -1,5 +1,6 @@
 export const FITNESS_MACHINE_SERVICE_UUID = 0x1826;
 export const INDOOR_ROWING_DATA_UUID = 0x2ad1;
+export const FITNESS_MACHINE_CONTROL_POINT_UUID = 0x2ad9;
 
 const FLAG_MORE_DATA = 0x0001;
 const FLAG_AVERAGE_STROKE_RATE = 0x0002;
@@ -64,6 +65,7 @@ export const parseIndoorRowingData = (dataView) => {
     result.averagePace = view.getUint16(offset, true) / 2;
     offset += 2;
   }
+  // Pace units per GATT: uint16, resolution 0.5 s per 500m → value/2 = sec/500m
 
   if (flags & FLAG_TOTAL_ENERGY && canRead(view, offset, 2)) {
     result.totalEnergy = view.getUint16(offset, true);
